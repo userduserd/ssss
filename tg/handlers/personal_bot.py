@@ -71,8 +71,8 @@ async def awaiting_token(msg: Message, state: FSMContext):
 
 
 async def runner(token, user, msg):
-    venv_path = "/ssss/env/bin/python3"
-    personal_bot_script = "/ssss/core/personal_bot.py"
+    venv_path = "/root/ssss/env/bin/python3"
+    personal_bot_script = "/root/ssss/core/personal_bot.py"
     command = f'nohup {venv_path} {personal_bot_script} {token} > /dev/null 2>&1 &'
     bot = Bot(token)
     bot_info = await bot.get_me()
