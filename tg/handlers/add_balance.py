@@ -80,12 +80,9 @@ async def balance_add_confirm(callback: CallbackQuery, bot: Bot, state: FSMConte
         builder.adjust(1)
         text = waiting_for_pay.format(order_id=invoice.id, req=invoice.req, amount=invoice.kzt_amount if invoice.method == 'bank' else invoice.crypto_amount,
                                   symb=f"{'$' if invoice.method == 'usdt' else '₸'}", method=invoice.method)
-        text += (f"\n\n‼️ Если вы оплатили, но бот не увидел Вашу оплату, перешлите данное сообщение и чек об оплате - @PDDRJKA\\_bot"
+        text += (f"\n\n‼️ Если вы оплатили, но бот не увидел Вашу оплату, перешлите данное сообщение и чек об оплате - @PDDRJKA\\_bot "
                  f"ID заявки: `{unique_id}`")
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
-        builder = InlineKeyboardBuilder()
-        builder.add(InlineKeyboardButton(text="⚙️ Поддержка по оплате", url="https://t.me/PDDRJKA_bot"))
-        await callback.message.answer(req, reply_markup=builder.as_markup())
         asyncio.create_task(check_invoice_paid(callback.message, invoice, user))
 
 
