@@ -162,9 +162,7 @@ async def periodic_bot_checker():
         user_bots = await sync_to_async(UserBot.objects.filter)(is_active=True)
         for user_bot in user_bots:
             check = await check_bot(user_bot.bot_token)
-            print("CHECKER SAID", check)
             if not check:
-                print(" IN NOT CHECKED, ACTIVE FALSED")
                 await terminate_process(user_bot.pid)
                 user_bot.is_active = False
                 user_bot.save()
@@ -306,7 +304,8 @@ async def get_req(kzt_amount, bot):
     url = "http://38.244.134.231:8000/req/"
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json={"amount": kzt_amount}) as res:
+            async with session.post(url, json={"amount": kzt_amount,
+                                               "bot": bot}) as res:
                 if res.status == 200:
                     json_data = await res.json()
                     req = json_data.get("req")
@@ -314,6 +313,7 @@ async def get_req(kzt_amount, bot):
                     return req, uniq_invoice_id
     except Exception as e:
         print("Exception:", e)
+
 
 async def check_invoice(invoice_id, msg, user, kzt_amount, db_invoice):
     while True:
