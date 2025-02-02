@@ -305,8 +305,7 @@ async def get_req(kzt_amount, bot):
     url = os.getenv("REQ_URL")
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json={"amount": kzt_amount,
-                                               "bot": bot}) as res:
+            async with session.post(url, json={"amount": kzt_amount, "bot": str(bot)}) as res:
                 if res.status == 200:
                     json_data = await res.json()
                     req = json_data.get("req")
