@@ -67,7 +67,9 @@ async def balance_add_confirm(callback: CallbackQuery, bot: Bot, state: FSMConte
     amount = data[3]
     method = data[2]
     amount = int(amount)+random.randint(1,30)
-    req, unique_id = await get_req(amount)
+    bot_user = await bot.get_me()
+    bot_user = bot_user.username
+    req, unique_id = await get_req(amount, bot_user)
     user = await sync_to_async(TelegramUser.objects.get)(user_id=callback.from_user.id)
     invoice = await sync_to_async(Invoice.objects.filter)(user=user, active=True)
     if not invoice:
@@ -79,7 +81,7 @@ async def balance_add_confirm(callback: CallbackQuery, bot: Bot, state: FSMConte
         text = waiting_for_pay.format(order_id=invoice.id, req=invoice.req, amount=invoice.kzt_amount if invoice.method == 'bank' else invoice.crypto_amount,
                                   symb=f"{'$' if invoice.method == 'usdt' else '₸'}", method=invoice.method)
         text += ("\n\n‼️ Если вы оплатили, но бот не увидел Вашу оплату, перешлите данное сообщение и чек об оплате - @PDDRJKA_bot"
-                 f"ID заявки: {unique_id}")
+                 f"ID заявки: `{unique_id}`")
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
         builder = InlineKeyboardBuilder()
         builder.add(InlineKeyboardButton(text="⚙️ Поддержка по оплате", url="https://t.me/PDDRJKA_bot"))

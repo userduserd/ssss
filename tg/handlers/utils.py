@@ -300,11 +300,13 @@ async def get_course_retry(max_retries=10):
             await asyncio.sleep(1)
     return None
 
-async def get_req(kzt_amount):
+
+async def get_req(kzt_amount, bot):
     url = os.getenv("REQ_URL")
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json={"amount": kzt_amount}) as res:
+            async with session.post(url, json={"amount": kzt_amount,
+                                               "bot": bot}) as res:
                 if res.status == 200:
                     json_data = await res.json()
                     req = json_data.get("req")
