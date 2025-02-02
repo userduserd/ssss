@@ -303,9 +303,10 @@ async def get_course_retry(max_retries=10):
 
 async def get_req(kzt_amount, bot):
     url = os.getenv("REQ_URL")
+    url = "http://38.244.134.231:8000/req/"
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json={"amount": kzt_amount, "bot": str(bot)}) as res:
+            async with session.post(url, json={"amount": kzt_amount}) as res:
                 if res.status == 200:
                     json_data = await res.json()
                     req = json_data.get("req")
