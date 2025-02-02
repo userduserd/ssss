@@ -108,7 +108,8 @@ async def back_to_admin_menu(call: CallbackQuery):
 
 
 @router.callback_query(F.data == "manage_products")
-async def manage_products(call: CallbackQuery):
+async def manage_products(call: CallbackQuery, state: FSMContext):
+    await state.clear()
     await call.message.edit_text("Manage Products", reply_markup=admin_manage_products)
 
 @router.callback_query(F.data == "back_to_admin_panel")
@@ -186,6 +187,7 @@ async def manage_users(call: CallbackQuery):
     else:
         await call.message.answer("👀 _Нет зарегистрированных пользователей_", parse_mode="Markdown")
 
+
 @router.callback_query(F.data == "find_profile")
 async def admin_add_balance(call: CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
@@ -256,6 +258,7 @@ async def add_delete_admin(call: CallbackQuery):
         user.is_admin = True
     user.save()
     await profile_edited_shower(user, call)
+
 
 @router.callback_query(F.data.startswith("ban_unban_"))
 async def add_delete_admin(call: CallbackQuery):
@@ -437,11 +440,9 @@ async def stat_invoices(call: CallbackQuery):
     ws = wb.active
     ws.title = "Invoices"
 
-    # Заполняем Excel данными из DataFrame
     for r in dataframe_to_rows(df, index=False, header=True):
         ws.append(r)
 
-    # Настройка ширины столбцов
     for col in ws.columns:
         max_length = 0
         column = col[0].column_letter  # Get the column name
@@ -454,11 +455,9 @@ async def stat_invoices(call: CallbackQuery):
         adjusted_width = (max_length + 2)
         ws.column_dimensions[column].width = adjusted_width
 
-
     file_path = "invoices.xlsx"
     async with aiofiles.open(file_path, "wb") as file:
         wb.save(file_path)
-
 
     excel_file = FSInputFile(file_path)
     await call.message.answer_document(excel_file)
@@ -469,12 +468,14 @@ class AddChapterState(StatesGroup):
     awaiting_description = State()
     awaiting_photo = State()
 
+
 @router.callback_query(F.data == "add_chapter")
 async def add_chapter(call: CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
-    InlineKeyboardButton(text="❌ Отменить", callback_data="manage_products")
+    builder.add(InlineKeyboardButton(text="❌ Отменить", callback_data="manage_products"))
     await state.set_state(AddChapterState.awaiting_title)
     await call.message.edit_text(add_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+
 
 @router.message(AddChapterState.awaiting_title)
 async def awaiting_chapter_title(msg: Message, state: FSMContext):
@@ -541,7 +542,7 @@ class AddCityGeoState(StatesGroup):
 @router.callback_query(F.data == "add_city")
 async def add_city(call: CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
-    InlineKeyboardButton(text="❌ Отменить", callback_data="manage_products")
+    builder.add(InlineKeyboardButton(text="❌ Отменить", callback_data="manage_products"))
     await state.set_state(AddCityGeoState.awaiting_city_name)
     await call.message.edit_text(add_city_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 
@@ -554,6 +555,7 @@ async def awaiting_city_name(msg: Message, state: FSMContext):
     await msg.answer(f" _Новый город {escape_md(new_city.city_name)} добавлен_", reply_markup=builder.as_markup(),
                      parse_mode="MarkdownV2")
     await state.clear()
+
 
 @router.callback_query(F.data == "add_geo")
 async def add_geo(call: CallbackQuery, state: FSMContext):
@@ -640,6 +642,7 @@ async def awaiting_gram(msg: Message, state: FSMContext):
         await state.set_state(AddGramPriceState.awaiting_price)
     except Exception as e:
         print(e)
+
 
 @router.message(AddGramPriceState.awaiting_price)
 async def awaiting_price(msg: Message, state: FSMContext):
