@@ -153,16 +153,14 @@ async def manage_users(call: CallbackQuery):
 
         @router.callback_query(F.data.startswith("next_page_"))
         async def next_page(call: CallbackQuery):
-            nonlocal page_number
-            page_number += 1
+            page_number = int(call.data.split("_")[2]) + 1
             if page_number > total_pages:
                 page_number = total_pages
             await send_users_page(call, page_number, total_pages)
 
         @router.callback_query(F.data.startswith("prev_page_"))
         async def prev_page(call: CallbackQuery):
-            nonlocal page_number
-            page_number -= 1
+            page_number = int(call.data.split("_")[2]) - 1
             if page_number < 1:
                 page_number = 1
             await send_users_page(call, page_number, total_pages)
@@ -277,6 +275,7 @@ async def add_delete_admin(call: CallbackQuery):
 
 class UserBalanceState(StatesGroup):
     awaiting_amount = State()
+
 
 @router.callback_query(F.data.startswith("user_balance_"))
 async def user_balance(call: CallbackQuery, state: FSMContext):
@@ -769,13 +768,16 @@ async def adding_products(msg: Message, state: FSMContext):
     except Exception as e:
         print(e)
 
+
 class ConfPercentState(StatesGroup):
     awaiting_percent = State()
+
 
 @router.callback_query(F.data == "conf_shop")
 async def configurations(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await call.message.edit_text(shop_configuration_text, reply_markup=conf_kb, parse_mode="Markdown")
+
 
 @router.callback_query(F.data == "change_ref_percent")
 async def change_ref_percent(call: CallbackQuery, state: FSMContext):
@@ -783,6 +785,7 @@ async def change_ref_percent(call: CallbackQuery, state: FSMContext):
     builder.add(InlineKeyboardButton(text="❌ Отменить", callback_data="conf_shop"))
     await state.set_state(ConfPercentState.awaiting_percent)
     await call.message.edit_text(change_ref_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+
 
 @router.message(ConfPercentState.awaiting_percent)
 async def awaiting_percent(msg: Message, state: FSMContext):
@@ -841,6 +844,7 @@ async def shop_balance(call: CallbackQuery):
         print(e)
         await call.message.answer("⚠️ Произошла ошибка при получении баланса.")
 
+
 @router.callback_query(F.data == "all_invoices")
 async def all_invoices(call: CallbackQuery):
     invoices = await sync_to_async(list)(Invoice.objects.filter(complete=True, withdrawed_to_shop=False))
@@ -887,6 +891,7 @@ async def all_invoices(call: CallbackQuery):
     else:
         await call.message.answer("👀 _Нет ожидающих инвойсов_", parse_mode="Markdown")
 
+
 @router.callback_query(F.data.startswith("invoice_"))
 async def show_invoice(call: CallbackQuery):
     try:
@@ -913,8 +918,10 @@ async def show_invoice(call: CallbackQuery):
         print(e)
         await call.message.answer("⚠️ Ошибка при получении информации об инвойсе.")
 
+
 class WithdrawToShop(StatesGroup):
     awaiting_usdt = State()
+
 
 @router.callback_query(F.data == "vivod_please")
 async def vivod_please(call: CallbackQuery, bot: Bot):
@@ -944,8 +951,10 @@ async def vivod_please(call: CallbackQuery, bot: Bot):
     else:
         await call.message.answer("💫 _Вывод сейчас невозможен, ожидайте вывода прошлой заявки_")
 
+
 class USDTAddress(StatesGroup):
     awaiting_trc20 = State()
+
 
 @router.callback_query(F.data == "type_usdt_trc20")
 async def type_usdt_trc20(call: CallbackQuery, state: FSMContext):
@@ -953,6 +962,7 @@ async def type_usdt_trc20(call: CallbackQuery, state: FSMContext):
     builder.add(InlineKeyboardButton(text="❌ Отменить", callback_data="conf_shop"))
     await state.set_state(USDTAddress.awaiting_trc20)
     await call.message.edit_text(usdt_trc20_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+
 
 @router.message(USDTAddress.awaiting_trc20)
 async def awaiting_usdt_address(msg: Message, state: FSMContext):
@@ -963,3 +973,4 @@ async def awaiting_usdt_address(msg: Message, state: FSMContext):
     builder.add(InlineKeyboardButton(text="‹ Настройки", callback_data="conf_shop"))
     await msg.answer(f"✔️ _Ваш кошелек изменен_:\n"
                      f"`{conf.USDT_TRC20}`", reply_markup=builder.as_markup(), parse_mode="Markdown")
+
