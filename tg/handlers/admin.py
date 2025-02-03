@@ -7,25 +7,25 @@ from aiogram import Router, Bot, F
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.filters import Filter
 from aiogram.types import (Message, InlineKeyboardButton, CallbackQuery, FSInputFile, ReplyKeyboardMarkup,
-                           KeyboardButton, ReplyKeyboardRemove)
-
+                           KeyboardButton, ReplyKeyboardRemove, InputMediaPhoto)
 from django.db.models import Sum, Count
 from aiogram.fsm.context import FSMContext
 from django.db.models.functions import Coalesce
 from django.db.models import Value, CharField
 from .text import broadcast_text, broadcasting_text, find_user_text, profile_text, add_remove_balance_text, stat_text, \
-    admin_panel_text, add_chapter_text, add_city_text, shop_configuration_text, change_ref_text, usdt_trc20_text
+    admin_panel_text, add_chapter_text, add_city_text, shop_configuration_text, change_ref_text, usdt_trc20_text, \
+    change_chapter_text
 from .user_history import show_products_page
 from .utils import vitrina_text, rassilka, terminate_process, get_total_purchases, get_total_invoices, \
     get_total_promo, get_total_promo_amount, namer, profile_shower, profile_edited_shower, get_statistics, escape_md, \
-    show_desc_or_photo, escape_markdown_v2
+    show_desc_or_photo, escape_markdown_v2, chapter_texter, changing_chapter_func, parse_number
 from tg.models import TelegramUser, City, Rayon, Product, GramPrice, Invoice, Req, Chapter
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from asgiref.sync import sync_to_async
 from aiogram.filters import Command
 from ..models import UserBot, ShopConfiguration, WithdrawInvoices
 
-from .kb import admin as admin_kb, admin_manage_products, admin_back_to_menu_kb, admin_statistics, conf_kb
+from .kb import admin as admin_kb, admin_manage_products, admin_back_to_menu_kb, admin_statistics, conf_kb, change_customs_kb
 
 router = Router()
 
@@ -59,16 +59,15 @@ async def personal_bots(call: CallbackQuery):
 
         @router.callback_query(F.data.startswith("next_page_"))
         async def next_page(call: CallbackQuery):
-            nonlocal page_number
-            page_number += 1
+            page_number = int(call.data.split("_")[2]) + 1
+
             if page_number > total_pages:
                 page_number = total_pages
             await send_bots_page(call, page_number, total_pages)
 
         @router.callback_query(F.data.startswith("prev_page_"))
         async def prev_page(call: CallbackQuery):
-            nonlocal page_number
-            page_number -= 1
+            page_number = int(call.data.split("_")[2]) - 1
             if page_number < 1:
                 page_number = 1
             await send_bots_page(call, page_number, total_pages)
@@ -115,18 +114,22 @@ async def manage_products(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await call.message.edit_text("Manage Products", reply_markup=admin_manage_products)
 
+
 @router.callback_query(F.data == "back_to_admin_panel")
 async def back_to_admin_panel(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await call.message.edit_text(admin_panel_text, reply_markup=admin_kb, parse_mode="Markdown")
+
 
 @router.callback_query(F.data == "show_products")
 async def show_products(call: CallbackQuery):
     text = await vitrina_text()
     await call.message.answer(text, parse_mode="Markdown")
 
+
 class BroadcastState(StatesGroup):
     awaiting_text = State()
+
 
 @router.callback_query(F.data == "send_msg_to_all")
 async def send_msg_to_all(call: CallbackQuery, state: FSMContext):
@@ -135,10 +138,12 @@ async def send_msg_to_all(call: CallbackQuery, state: FSMContext):
     await state.set_state(BroadcastState.awaiting_text)
     await call.message.edit_text(broadcast_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 
+
 @router.message(BroadcastState.awaiting_text)
 async def broadcast_awaiting_text(msg: Message, bot: Bot):
     b_message = await msg.answer(broadcasting_text.format(amount=0, b_amount=0, p_amount=0, p_b_amount=0), parse_mode="Markdown")
     asyncio.create_task(rassilka(b_message, msg.text, bot))
+
 
 class FindUserState(StatesGroup):
     awaiting_username_user_id = State()
@@ -338,14 +343,13 @@ async def sell_statistics(call: CallbackQuery):
 
 @router.callback_query(F.data == "stat_products")
 async def stat_products(call: CallbackQuery):
-    # Загружаем данные из базы с обработкой `None`
     products = Product.objects.annotate(
         city_name=Coalesce('city__city_name', Value('Не указано'), output_field=CharField()),
         chapter_name=Coalesce('gram__chapter__chapter_name', Value('Не указано'), output_field=CharField()),
         rayon_name=Coalesce('rayon__rayon_name', Value('Не указано'), output_field=CharField()),
         bought_by_username=Coalesce('bought_by__username', Value('Не указано'), output_field=CharField()),
         gram_price=Coalesce('gram__price', Value('Не указано'), output_field=CharField())
-    ).values(
+    ).filter(date_bought__isnull=False).values(
         'city_name', 'rayon_name', 'bought_by_username', 'gram_price',
         'date_add', 'date_bought', 'address', 'reserved', 'chapter_name'
     )
@@ -402,7 +406,6 @@ async def stat_products(call: CallbackQuery):
 
 @router.callback_query(F.data == "stats_withdraw")
 async def stat_invoices(call: CallbackQuery):
-    # Загружаем данные из базы с обработкой `None`
     invoices = Invoice.objects.filter(complete=True).annotate(
         user_name=Coalesce('user__username', Value('Не указано'), output_field=CharField()),
         user_user_id=Coalesce('user__user_id', Value('Не указано'), output_field=CharField()),
@@ -417,10 +420,8 @@ async def stat_invoices(call: CallbackQuery):
         await call.message.answer("Нет данных для экспорта.")
         return
 
-    # Преобразуем в DataFrame
     df = pd.DataFrame(list(invoices))
 
-    # Приводим datetime-поля к неосведомленным
     if 'created_at' in df.columns:
         df['created_at'] = df['created_at'].apply(
             lambda x: x.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(x) else 'Не указано'
@@ -447,7 +448,7 @@ async def stat_invoices(call: CallbackQuery):
 
     for col in ws.columns:
         max_length = 0
-        column = col[0].column_letter  # Get the column name
+        column = col[0].column_letter
         for cell in col:
             try:
                 if len(str(cell.value)) > max_length:
@@ -572,6 +573,7 @@ async def add_geo(call: CallbackQuery, state: FSMContext):
         builder.add(InlineKeyboardButton(text="🌆 Добавить Город", callback_data="add_city"))
         await call.message.answer("Для начала добавьте город.", reply_markup=builder.as_markup())
 
+
 @router.message(AddCityGeoState.choose_city_name)
 async def choose_city_name(msg: Message, state: FSMContext):
     try:
@@ -590,6 +592,7 @@ async def choose_city_name(msg: Message, state: FSMContext):
     except Exception as e:
         print(e)
 
+
 @router.message(AddCityGeoState.awaiting_rayon_name)
 async def awaiting_rayon_name(msg: Message, state: FSMContext):
     data = await state.get_data()
@@ -602,10 +605,12 @@ async def awaiting_rayon_name(msg: Message, state: FSMContext):
                      parse_mode="MarkdownV2")
     await state.clear()
 
+
 class AddGramPriceState(StatesGroup):
     choose_chapter_name = State()
     awaiting_gram = State()
     awaiting_price = State()
+
 
 @router.callback_query(F.data == "add_gram")
 async def add_gram(call: CallbackQuery, state: FSMContext):
@@ -615,6 +620,7 @@ async def add_gram(call: CallbackQuery, state: FSMContext):
     keyboard.keyboard.append([KeyboardButton(text="❌ Отменить")])
     await state.set_state(AddGramPriceState.choose_chapter_name)
     await call.message.answer("Выберите из списка к какому разделу добавить фасовку:", reply_markup=keyboard)
+
 
 @router.message(AddGramPriceState.choose_chapter_name)
 async def choose_chapter_name(msg: Message, state: FSMContext):
@@ -634,6 +640,7 @@ async def choose_chapter_name(msg: Message, state: FSMContext):
             await state.set_state(AddGramPriceState.awaiting_gram)
     except Exception as e:
         print(e)
+
 
 @router.message(AddGramPriceState.awaiting_gram)
 async def awaiting_gram(msg: Message, state: FSMContext):
@@ -662,6 +669,7 @@ async def awaiting_price(msg: Message, state: FSMContext):
         await state.clear()
     except Exception as e:
         print(e)
+
 
 class AddProductState(StatesGroup):
     awaiting_gram_price = State()
@@ -725,6 +733,7 @@ async def product_choose_city(msg: Message, state: FSMContext):
     except Exception as e:
         print(e)
 
+
 @router.message(AddProductState.choose_rayon_name)
 async def product_rayon_name(msg: Message, state: FSMContext):
     try:
@@ -742,6 +751,7 @@ async def product_rayon_name(msg: Message, state: FSMContext):
 
     except Exception as e:
         print(e)
+
 
 @router.message(AddProductState.adding_products)
 async def adding_products(msg: Message, state: FSMContext):
@@ -854,16 +864,14 @@ async def all_invoices(call: CallbackQuery):
 
         @router.callback_query(F.data.startswith("next_inv_page_"))
         async def next_inv_page(call: CallbackQuery):
-            nonlocal page_number
-            page_number += 1
+            page_number = int(call.data.split("_")[3]) + 1
             if page_number > total_pages:
                 page_number = total_pages
             await send_invoices_page(call, page_number, total_pages, invoices)
 
         @router.callback_query(F.data.startswith("prev_inv_page_"))
         async def prev_inv_page(call: CallbackQuery):
-            nonlocal page_number
-            page_number -= 1
+            page_number = int(call.data.split("_")[3]) - 1
             if page_number < 1:
                 page_number = 1
             await send_invoices_page(call, page_number, total_pages, invoices)
@@ -973,4 +981,202 @@ async def awaiting_usdt_address(msg: Message, state: FSMContext):
     builder.add(InlineKeyboardButton(text="‹ Настройки", callback_data="conf_shop"))
     await msg.answer(f"✔️ _Ваш кошелек изменен_:\n"
                      f"`{conf.USDT_TRC20}`", reply_markup=builder.as_markup(), parse_mode="Markdown")
+
+
+@router.callback_query(F.data == "change_customs")
+async def change_chapter(call: CallbackQuery):
+    chapters = await sync_to_async(Chapter.objects.all)()
+    text = "🎉 *Разделы продуктов* 🎉\n"
+    for chapter in chapters:
+        text += f"📦 *{escape_markdown_v2(chapter.chapter_name)}* 📦\n"
+        gram_prices = await sync_to_async(GramPrice.objects.filter)(chapter=chapter)
+        for gram in gram_prices:
+            text += f"• ⚖️`{gram.gram}г {gram.price}`₸\n"
+
+    text += "\n🌍 *Города и районы* 🌍\n"
+    cities = await sync_to_async(City.objects.all)()
+    for city in cities:
+        text += f"🏙️ {city.city_name} 🏙️:\n"
+        rayons = await sync_to_async(Rayon.objects.filter)(city=city)
+        for rayon in rayons:
+            text += f"• 📍 {rayon.rayon_name} 🌳\n"
+    await call.message.edit_text(text, reply_markup=change_customs_kb, parse_mode="MarkdownV2")
+
+
+@router.callback_query(F.data == "change_chapter")
+async def change_chapter(call: CallbackQuery, state: FSMContext):
+    chapters = await sync_to_async(Chapter.objects.all)()
+    builder = InlineKeyboardBuilder()
+    for chapter in chapters:
+        builder.add(InlineKeyboardButton(text=f"✍️ {chapter.chapter_name}", callback_data=f"changing_chapter_{chapter.id}"))
+    builder.adjust(1)
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="change_customs"))
+    await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+
+
+class ChangingChapterState(StatesGroup):
+    awaiting_photo = State()
+    awaiting_description = State()
+
+
+@router.callback_query(F.data.startswith("changing_chapter_"))
+async def changing_chapter(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    data = call.data.split("_")
+    chapter = await sync_to_async(Chapter.objects.get)(id=data[2])
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="🖼 Изм. Фото", callback_data=f"photo_change_ch_{chapter.id}"))
+    builder.add(InlineKeyboardButton(text="📃 Изм. Описание", callback_data=f"desc_change_ch_{chapter.id}"))
+    builder.adjust(2)
+    builder.row(InlineKeyboardButton(text="⚖️ Фасовка/Цены", callback_data=f"gramprice_change_ch_{chapter.id}"))
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="change_chapter"))
+    text = await chapter_texter(chapter)
+    if chapter.photo:
+        media = InputMediaPhoto(media=chapter.photo, caption=text)
+        await call.message.edit_media(media=media, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
+    else:
+        await call.message.edit_text(text=text, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
+
+
+@router.callback_query(F.data.startswith("photo_change_ch_"))
+async def photo_change_ch(call: CallbackQuery, state: FSMContext):
+    await state.set_state(ChangingChapterState.awaiting_photo)
+    data = call.data.split("_")
+    chapter = await sync_to_async(Chapter.objects.get)(id=data[3])
+    await state.update_data(chapter_id=chapter.id)
+    await call.message.answer("🖼 _Отправьте фото_:", parse_mode="Markdown")
+
+
+@router.message(ChangingChapterState.awaiting_photo)
+async def chapter_awaiting_photo(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    chapter_id = data.get("chapter_id")
+    chapter = await sync_to_async(Chapter.objects.get)(id=chapter_id)
+    if msg.photo:
+        photo = msg.photo[-1]
+        file_id = photo.file_id
+        chapter.photo = file_id
+        chapter.save()
+        await state.clear()
+        await changing_chapter_func(msg, chapter)
+    else:
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_chapter_{chapter.id}"))
+        await msg.answer("📛 _Что то пошло не так, отправьте фото_:", parse_mode="Markdown")
+
+
+@router.callback_query(F.data.startswith("desc_change_ch_"))
+async def desc_change_ch(call: CallbackQuery, state: FSMContext):
+    data = call.data.split("_")
+    chapter = await sync_to_async(Chapter.objects.get)(id=data[3])
+    await state.set_state(ChangingChapterState.awaiting_description)
+    await state.update_data(chapter_id=chapter.id)
+    await call.message.answer("📃 _Отправьте описание раздела_:")
+
+
+@router.message(ChangingChapterState.awaiting_description)
+async def chapter_awaiting_desc(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    chapter_id = data.get("chapter_id")
+    chapter = await sync_to_async(Chapter.objects.get)(id=chapter_id)
+    chapter.description = msg.text
+    chapter.save()
+    await changing_chapter_func(msg, chapter)
+    await state.clear()
+
+
+@router.callback_query(F.data.startswith("gramprice_change_ch_"))
+async def gramprice_change_ch(call: CallbackQuery):
+    data = call.data.split("_")
+    chapter = await sync_to_async(Chapter.objects.get)(id=data[3])
+    grams = await sync_to_async(GramPrice.objects.filter)(chapter=chapter)
+    builder = InlineKeyboardBuilder()
+    for gram in grams:
+        builder.add(InlineKeyboardButton(text=f"{chapter.chapter_name} {gram.gram} {gram.price}₸",
+                                         callback_data=f"changing_gramprice_{gram.id}"))
+    builder.adjust(1)
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_chapter_{chapter.id}"))
+    await call.message.edit_reply_markup(reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data.startswith("changing_gramprice_"))
+async def changing_gramprice(call: CallbackQuery):
+    data = call.data.split("_")
+    gram = await sync_to_async(GramPrice.objects.get)(id=data[2])
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⚖️ Изм. Фасовку", callback_data=f"changing_fasovka_{gram.id}"))
+    builder.add(InlineKeyboardButton(text="💵 Изм. Цену", callback_data=f"changing_price_{gram.id}"))
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"gramprice_change_ch_{gram.chapter.id}"))
+    builder.adjust(1)
+    await call.message.edit_reply_markup(reply_markup=builder.as_markup())
+
+
+class GramPriceChangingState(StatesGroup):
+    awaiting_gram = State()
+    awaiting_price = State()
+
+
+@router.callback_query(F.data.startswith("changing_fasovka_"))
+async def changing_fasovka(call: CallbackQuery, state: FSMContext):
+    data = call.data.split("_")
+    gram = await sync_to_async(GramPrice.objects.get)(id=data[2])
+    await state.set_state(GramPriceChangingState.awaiting_gram)
+    await state.update_data(gram_id=gram.id)
+    await call.message.answer("⚖️ _Введите фасовку_:", parse_mode="Markdown")
+
+
+@router.message(GramPriceChangingState.awaiting_gram)
+async def changing_awaiting_gram(msg: Message, state: FSMContext):
+    try:
+        gram_amount = float(msg.text)
+        data = await state.get_data()
+        gram_id = data.get("gram_id")
+        gram = await sync_to_async(GramPrice.objects.get)(id=gram_id)
+        gram.gram = gram_amount
+        gram.save()
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_gramprice_{gram.id}"))
+        await msg.answer(f"Фасовка {escape_md(gram.chapter.chapter_name)} изменена на `{gram.gram}`г",
+                         reply_markup=builder.as_markup())
+        await state.clear()
+    except Exception as e:
+        await msg.answer("📛 _Что то пошло не так, введите цельное или дробное число_:", parse_mode="Markdown")
+
+
+@router.callback_query(F.data.startswith("changing_price_"))
+async def changing_price(call: CallbackQuery, state: FSMContext):
+    data = call.data.split("_")
+    gram = await sync_to_async(GramPrice.objects.get)(id=data[2])
+    await state.set_state(GramPriceChangingState.awaiting_price)
+    await state.update_data(gram_id=gram.id)
+    await call.message.answer("💵 _Введите новую цену_:", parse_mode="Markdown")
+
+
+@router.message(GramPriceChangingState.awaiting_price)
+async def awaiting_price_gp(msg: Message, state: FSMContext):
+    try:
+        data = await state.get_data()
+        gram_id = data.get("gram_id")
+        gram = await sync_to_async(GramPrice.objects.get)(id=gram_id)
+        new_price = parse_number(msg.text)
+        gram.price = new_price
+        gram.save()
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_gramprice_{gram.id}"))
+        await msg.answer(f"Цена {escape_md(gram.chapter.chapter_name)} изменена на `{gram.price}`₸",
+                         reply_markup=builder.as_markup())
+        await state.clear()
+    except Exception as e:
+        await msg.answer("📛 _Что то пошло не так, введите цельное число_:", parse_mode="Markdown")
+
+# @router.callback_query(F.data == "change_customs")
+# async def change_chapter(call: CallbackQuery, state: FSMContext):
+#     chapters = await sync_to_async(Chapter.objects.all)()
+#     text = "➖➖ *Разделы продуктов* ➖➖\n"
+#     for chapter in chapters:
+#         text += f"🆔 {chapter.id} 📦 {chapter.chapter_name} 📦\n"
+#         gram_prices = await sync_to_async(GramPrice.objects.filter)(chapter=chapter)
+#         for gram in gram_prices:
+#             text += f"• `{gram.gram}г {gram.price}`₸\n"
+#     text += "\n➖➖ *Города и районы* ➖➖\n"
 

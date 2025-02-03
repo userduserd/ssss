@@ -55,9 +55,17 @@ admin_manage_products = [
       InlineKeyboardButton(text="⚖️ Добавить Фасовку", callback_data="add_gram")],
     [InlineKeyboardButton(text="🌆 Добавить Город", callback_data="add_city"),
      InlineKeyboardButton(text="🗺️ Добавить Район", callback_data="add_geo")],
+    [InlineKeyboardButton(text="✍️ Редактировать", callback_data="change_customs")],
      [InlineKeyboardButton(text="‹ Назад", callback_data="back_to_admin_panel")]]
 
 admin_manage_products = InlineKeyboardMarkup(inline_keyboard=admin_manage_products)
+
+change_customs_kb = [
+    [InlineKeyboardButton(text="✍️ Раздел", callback_data="change_chapter")],
+    [InlineKeyboardButton(text="✍️ Город", callback_data="change_cities"),
+     InlineKeyboardButton(text="✍️ Район", callback_data="change_geos")],
+    [InlineKeyboardButton(text="‹ Назад", callback_data="manage_products")]]
+change_customs_kb = InlineKeyboardMarkup(inline_keyboard=change_customs_kb)
 admin_back_to_menu_kb = [
     [InlineKeyboardButton(text="‹ Назад", callback_data="back_to_admin_panel")]
 ]

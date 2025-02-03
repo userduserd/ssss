@@ -4,7 +4,7 @@ from aiohttp import ClientConnectorError
 import aiohttp
 from aiogram.fsm.state import StatesGroup, State
 import asyncio
-from aiogram.types import InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InputMediaPhoto
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from asgiref.sync import sync_to_async
 from tg.models import Invoice, Product, City, Rayon, Chapter, GramPrice, TelegramUser, UserBot, PromoCode
@@ -30,6 +30,7 @@ def escape_markdown_v2(text: str) -> str:
     for char in escape_chars:
         text = text.replace(char, f'\\{char}')
     return text
+
 
 async def vitrina_text():
     text = ""
@@ -435,6 +436,7 @@ async def show_desc_or_photo(user, chapter, bot):
     elif chapter.description and not chapter.photo:
         await bot.send_message(chat_id=user.user_id, text=chapter.description, reply_markup=builder.as_markup())
 
+
 def parse_number(number_str: str) -> int:
     number_str = number_str.replace('.', '').replace(',', '').replace(' ', '')
     try:
@@ -442,3 +444,22 @@ def parse_number(number_str: str) -> int:
     except Exception as e:
         print(e)
 
+
+async def chapter_texter(chapter):
+    text = (f"📦 *{escape_markdown_v2(chapter.chapter_name)}* 📦\n\n"
+            f"{f'🧩 * Описание:*{chapter.description}' if chapter.description else '🧩 *Описание отсутствует*'}")
+    return text
+
+
+async def changing_chapter_func(msg, chapter):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="🖼 Фото", callback_data=f"photo_change_ch_{chapter.id}"))
+    builder.add(InlineKeyboardButton(text="📃 Описание", callback_data=f"desc_change_ch_{chapter.id}"))
+    builder.adjust(2)
+    builder.row(InlineKeyboardButton(text="⚖️ Фасовка/Цены", callback_data=f"gramprice_change_ch_{chapter.id}"))
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="change_chapter"))
+    text = await chapter_texter(chapter)
+    if chapter.photo:
+        await msg.answer_photo(photo=chapter.photo, caption=text, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
+    else:
+        await msg.answer(text=text, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")

@@ -29,6 +29,7 @@ class TelegramUser(models.Model):
     def generate_referral_code(self):
         return str(uuid.uuid4().hex[:10]).upper()
 
+
 class City(models.Model):
     city_name = models.CharField(max_length=255)
 
