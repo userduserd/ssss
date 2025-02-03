@@ -40,8 +40,8 @@ async def main():
 
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
-    dp.include_routers(exchange.router, start.router, magazine.router, add_balance.router, personal_bot.router,
-                       admin.router, user_history.router, promo.router, refs.router, report.router, super_admin.router)
+    dp.include_routers(admin.router, exchange.router, start.router, magazine.router, add_balance.router,
+                       personal_bot.router, user_history.router, promo.router, refs.router, report.router, super_admin.router)
     dp.message.filter(IsNotBannedFilter())
     await bot.delete_webhook(drop_pending_updates=True)
     asyncio.create_task(periodic_bot_checker())
