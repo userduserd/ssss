@@ -39,13 +39,16 @@ class IsAdminFilter(Filter):
         except TelegramUser.DoesNotExist:
             return False
 
+
 router.message.filter(IsAdminFilter())
+
 
 @router.message(Command("admin123"))
 async def admin_panel(msg: Message):
     await msg.answer(admin_panel_text,reply_markup=admin_kb, parse_mode="Markdown")
 
 PAGE_SIZE = 30
+
 
 @router.callback_query(F.data == "personal_bots")
 async def personal_bots(call: CallbackQuery):
@@ -667,6 +670,7 @@ class AddProductState(StatesGroup):
     choose_rayon_name = State()
     adding_products = State()
 
+
 @router.callback_query(F.data == "add_products")
 async def add_products(call: CallbackQuery, state: FSMContext):
     gram_prices = await sync_to_async(GramPrice.objects.all)()
@@ -675,6 +679,7 @@ async def add_products(call: CallbackQuery, state: FSMContext):
     keyboard.keyboard.append([KeyboardButton(text="❌ Отменить")])
     await state.set_state(AddProductState.awaiting_gram_price)
     await call.message.answer("Выберите из списка фасовку, к которой хотите добавить продукт:", reply_markup=keyboard)
+
 
 @router.message(AddProductState.awaiting_gram_price)
 async def awaiting_gram_price(msg: Message, state: FSMContext):

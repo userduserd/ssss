@@ -6,11 +6,11 @@ menu = [
     [InlineKeyboardButton(text="🎁 Покупки", callback_data="user_history"),
      InlineKeyboardButton(text="🏷 Промокод", callback_data="add_promo")],
      [InlineKeyboardButton(text="👥 Рефералка", callback_data="ref"),
-     InlineKeyboardButton(text="💬 Поддержка", url="https://t.me/")],
+     InlineKeyboardButton(text="💬 Поддержка", url="https://t.me/Versace_support_bot")],
     [InlineKeyboardButton(text="⚠️ Создать своего бота", callback_data="create_own_bot")],
     # [InlineKeyboardButton(text="⚡️Наши ресурсы", callback_data="resources")],
     # [InlineKeyboardButton(text="☎️ Поддержка", url="https://t.me/Gazgolder_support1")],
-    [InlineKeyboardButton(text="Бот сделан сервисом T-REX", url="https://t.me/")],
+    # [InlineKeyboardButton(text="Бот сделан сервисом T-REX", url="https://t.me/")],
 ]
 menu = InlineKeyboardMarkup(inline_keyboard=menu)
 
