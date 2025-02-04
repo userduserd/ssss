@@ -126,7 +126,7 @@ async def show_products(call: CallbackQuery):
     text = await vitrina_text()
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="back_to_admin_menu"))
-    await call.message.edit_text(text, parse_mode="Markdown")
+    await call.message.edit_text(text, parse_mode="Markdown", reply_markup=builder.as_markup())
 
 
 class BroadcastState(StatesGroup):
