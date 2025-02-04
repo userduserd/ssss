@@ -46,8 +46,6 @@ async def magazine(callback: CallbackQuery, bot: Bot):
 async def cities(callback: CallbackQuery):
     data = callback.data.split("_")
     city = await sync_to_async(City.objects.get)(id=data[1])
-
-    # Находим все товары, которые доступны в этом городе
     gram_with_products = await sync_to_async(GramPrice.objects.filter)(product__isnull=False,
                                                                       product__bought_by__isnull=True,
                                                                       product__reserved=False,
@@ -62,7 +60,7 @@ async def cities(callback: CallbackQuery):
     builder.add(InlineKeyboardButton(text="‹ Назад", callback_data="start_buy"))
     builder.adjust(1)
 
-    await callback.message.edit_text(magazine_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+    await callback.message.edit_text(geo_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 
 
 @router.callback_query(F.data == "back_to_menu")
@@ -105,8 +103,8 @@ async def choose_gram(callback: CallbackQuery, bot: Bot):
     geo_with_products = geo_with_products.distinct()
     builder = InlineKeyboardBuilder()
     for geo in geo_with_products:
-        builder.add(InlineKeyboardButton(text=f"{geo.rayon_name}", callback_data=f"geo_{geo.id}_{gram.id}"))
-    builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"city_{city.id}"))
+        builder.add(InlineKeyboardButton(text=f"{geo.rayon_name}", callback_data=f"trybuy_{geo.id}_{gram.id}"))
+    builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"gram_{city.id}_{gram.id}"))
     builder.adjust(1)
     text = payment_text.format(geo="Выберите район", product=gram.chapter.chapter_name)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
