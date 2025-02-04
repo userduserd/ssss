@@ -57,17 +57,17 @@ async def personal_bots(call: CallbackQuery):
         total_pages = (len(bots) + PAGE_SIZE - 1) // PAGE_SIZE
         page_number = 1
 
-        @router.callback_query(F.data.startswith("next_page_"))
+        @router.callback_query(F.data.startswith("next_bot_page_"))
         async def next_page(call: CallbackQuery):
-            page_number = int(call.data.split("_")[2]) + 1
+            page_number = int(call.data.split("_")[3]) + 1
 
             if page_number > total_pages:
                 page_number = total_pages
             await send_bots_page(call, page_number, total_pages)
 
-        @router.callback_query(F.data.startswith("prev_page_"))
+        @router.callback_query(F.data.startswith("prev_bot_page_"))
         async def prev_page(call: CallbackQuery):
-            page_number = int(call.data.split("_")[2]) - 1
+            page_number = int(call.data.split("_")[3]) - 1
             if page_number < 1:
                 page_number = 1
             await send_bots_page(call, page_number, total_pages)
@@ -81,9 +81,9 @@ async def personal_bots(call: CallbackQuery):
                 builder.add(InlineKeyboardButton(text=f"@{(bot.bot_name)}", callback_data=f"pers_bot_{bot.id}"))
                 builder.add(InlineKeyboardButton(text=f"{'🟢' if bot.is_active else '🔴'}", callback_data=f"off_bot_{bot.id}"))
             if page_number > 1:
-                builder.row(InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data=f"prev_page_{page_number - 1}"))
+                builder.row(InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data=f"prev_bot_page_{page_number - 1}"))
             if page_number < total_pages:
-                builder.row(InlineKeyboardButton(text="Следующая страница ▶️", callback_data=f"next_page_{page_number + 1}"))
+                builder.row(InlineKeyboardButton(text="Следующая страница ▶️", callback_data=f"next_bot_page_{page_number + 1}"))
             builder.adjust(2)
             builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="back_to_admin_menu"))
             await call.message.edit_text("Список ботов", reply_markup=builder.as_markup())
@@ -1200,16 +1200,16 @@ async def manage_products(call: CallbackQuery):
         total_pages = (len(products) + PAGE_SIZE - 1) // PAGE_SIZE
         page_number = 1
 
-        @router.callback_query(F.data.startswith("next_page_"))
+        @router.callback_query(F.data.startswith("next_pr_page_"))
         async def next_page(call: CallbackQuery):
-            page_number = int(call.data.split("_")[2]) + 1
+            page_number = int(call.data.split("_")[3]) + 1
             if page_number > total_pages:
                 page_number = total_pages
             await send_products_page(call, page_number, total_pages)
 
-        @router.callback_query(F.data.startswith("prev_page_"))
+        @router.callback_query(F.data.startswith("prev_pr_page_"))
         async def prev_page(call: CallbackQuery):
-            page_number = int(call.data.split("_")[2]) - 1
+            page_number = int(call.data.split("_")[3]) - 1
             if page_number < 1:
                 page_number = 1
             await send_products_page(call, page_number, total_pages)
@@ -1226,9 +1226,9 @@ async def manage_products(call: CallbackQuery):
                 builder.add(InlineKeyboardButton(text=f"{product.rayon.rayon_name} - {gram_info}", callback_data=f"productshow_{product.id}"))
             builder.adjust(1, 2)
             if page_number > 1:
-                builder.row(InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data=f"prev_page_{page_number - 1}"))
+                builder.row(InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data=f"prev_pr_page_{page_number - 1}"))
             if page_number < total_pages:
-                builder.row(InlineKeyboardButton(text="Следующая страница ▶️", callback_data=f"next_page_{page_number + 1}"))
+                builder.row(InlineKeyboardButton(text="Следующая страница ▶️", callback_data=f"next_pr_page_{page_number + 1}"))
             builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="show_products"))
 
             await call.message.edit_text("Список продуктов:", reply_markup=builder.as_markup())
