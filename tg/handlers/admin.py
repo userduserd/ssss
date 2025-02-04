@@ -1243,7 +1243,8 @@ async def product_details(call: CallbackQuery):
     product_id = int(call.data.split("_")[1])
     product = await sync_to_async(Product.objects.get)(id=product_id)
     gram_info = f"{product.gram.gram}г - {product.gram.price}₸"
-    text = (f"📦 Продукт: {product.rayon.rayon_name}\n{gram_info}\n"
+    text = (f"📦 Продукт: {product.gram.chapter.chapter_name}\n"
+            f"{product.rayon.rayon_name}\n{gram_info}\n"
             f"Адрес: {product.address}\n"
             f"Дата добавления: {product.date_add.strftime('%Y-%m-%d %H:%M:%S')}\n")
 
@@ -1251,7 +1252,7 @@ async def product_details(call: CallbackQuery):
     builder.add(InlineKeyboardButton(text="🛠️ Редактировать", callback_data=f"edit_product_{product.id}"))
     builder.add(InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete_product_{product.id}"))
     builder.adjust(2)
-    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="manage_products"))
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="manage_sell_products"))
     await call.message.edit_text(text, reply_markup=builder.as_markup())
 
 
@@ -1259,8 +1260,10 @@ async def product_details(call: CallbackQuery):
 async def delete_product(call: CallbackQuery):
     product_id = int(call.data.split("_")[2])
     product = await sync_to_async(Product.objects.get)(id=product_id)
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="manage_sell_products"))
     await sync_to_async(product.delete)()
-    await call.message.edit_text(f"Продукт {product.rayon.rayon_name} - {product.gram.gram}г удален.")
+    await call.message.edit_text(f"Продукт {product.rayon.rayon_name} - {product.gram.gram}г удален.", reply_markup=builder.as_markup())
 
 # @router.callback_query(F.data == "change_customs")
 # async def change_chapter(call: CallbackQuery, state: FSMContext):
