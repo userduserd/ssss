@@ -1011,7 +1011,18 @@ async def change_chapter(call: CallbackQuery, state: FSMContext):
         builder.add(InlineKeyboardButton(text=f"✍️ {chapter.chapter_name}", callback_data=f"changing_chapter_{chapter.id}"))
     builder.adjust(1)
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="change_customs"))
-    await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+    data = await state.get_data()
+    is_media = data.get("is_media", False)
+
+    # Проверяем, был ли установлен флаг для медиа
+    if is_media:
+        # Если это медиа сообщение, редактируем текст, чтобы избежать ошибки
+        await call.message.edit_media(media=call.message.media, caption=change_chapter_text,
+                                      reply_markup=builder.as_markup(), parse_mode="Markdown")
+    else:
+        # Если это текстовое сообщение, редактируем текст
+        await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+    # await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 
 
 class ChangingChapterState(StatesGroup):
@@ -1034,8 +1045,10 @@ async def changing_chapter(call: CallbackQuery, state: FSMContext):
     if chapter.photo:
         media = InputMediaPhoto(media=chapter.photo)
         await call.message.edit_media(media=media, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
+        await state.update_data(is_media=True)
     else:
         await call.message.edit_text(text=text, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
+        await state.update_data(is_media=False)
 
 
 @router.callback_query(F.data.startswith("photo_change_ch_"))
