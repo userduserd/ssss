@@ -61,6 +61,25 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(menu_text.format(balance=user.balance), reply_markup=menu, parse_mode="Markdown")
 
 
+# @router.callback_query(F.data.startswith("gram_"))
+# async def choose_gram(callback: CallbackQuery, bot: Bot):
+#     data = callback.data.split("_")
+#     city_id = data[1]
+#     gram_id = data[2]
+#     city = await sync_to_async(City.objects.get)(id=city_id)
+#     gram = await sync_to_async(GramPrice.objects.get)(id=gram_id)
+#     geo_with_products = await sync_to_async(Rayon.objects.filter)(product__isnull=False,
+#                                                                   product__bought_by__isnull=True,
+#                                                                   product__reserved=False,
+#                                                                   city=city, gram=gram)
+#     geo_with_products = geo_with_products.distinct()
+#     builder = InlineKeyboardBuilder()
+#     for geo in geo_with_products:
+#         builder.add(InlineKeyboardButton(text=f"📍 {geo.rayon_name} 🌳", callback_data=f"trybuy_{geo.id}_{gram.id}"))
+#     builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"city_{city.id}"))
+#     builder.adjust(1)
+#     text = payment_text.format(geo=city.city_name, product=gram.chapter.chapter_name)
+#     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 @router.callback_query(F.data.startswith("gram_"))
 async def choose_gram(callback: CallbackQuery, bot: Bot):
     data = callback.data.split("_")
@@ -68,19 +87,30 @@ async def choose_gram(callback: CallbackQuery, bot: Bot):
     gram_id = data[2]
     city = await sync_to_async(City.objects.get)(id=city_id)
     gram = await sync_to_async(GramPrice.objects.get)(id=gram_id)
-    geo_with_products = await sync_to_async(Rayon.objects.filter)(product__isnull=False,
-                                                                  product__bought_by__isnull=True,
-                                                                  product__reserved=False,
-                                                                  city=city, gram=gram)
+
+    # Фильтрация продуктов, связанных с данным граммом и городом
+    products_with_gram = await sync_to_async(Product.objects.filter)(
+        gram=gram,  # фильтрация по грамму
+        city=city,  # фильтрация по городу
+        bought_by__isnull=True,  # Продукты, которые не куплены
+        reserved=False  # Продукты, которые не зарезервированы
+    )
+
+    # Извлечение районов, связанных с этими продуктами
+    geo_with_products = await sync_to_async(Rayon.objects.filter)(
+        id__in=products_with_gram.values_list('rayon_id', flat=True)  # извлекаем ID районов из связанных продуктов
+    )
     geo_with_products = geo_with_products.distinct()
+
     builder = InlineKeyboardBuilder()
     for geo in geo_with_products:
         builder.add(InlineKeyboardButton(text=f"📍 {geo.rayon_name} 🌳", callback_data=f"trybuy_{geo.id}_{gram.id}"))
+
     builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"city_{city.id}"))
     builder.adjust(1)
+
     text = payment_text.format(geo=city.city_name, product=gram.chapter.chapter_name)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
-
 
 @router.callback_query(F.data.startswith("trybuy_"))
 async def kzt_payment(callback: CallbackQuery, bot: Bot):
