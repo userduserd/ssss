@@ -447,7 +447,7 @@ def parse_number(number_str: str) -> int:
 
 async def chapter_texter(chapter):
     text = (f"📦 *{escape_markdown_v2(chapter.chapter_name)}* 📦\n\n"
-            f"{f'🧩 * Описание:*{chapter.description}' if chapter.description else '🧩 *Описание отсутствует*'}")
+            f"{f'🧩 * Описание: *{chapter.description}' if chapter.description else '🧩 *Описание отсутствует*'}")
     return text
 
 
