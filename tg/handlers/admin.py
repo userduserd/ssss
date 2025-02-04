@@ -1032,7 +1032,7 @@ async def changing_chapter(call: CallbackQuery, state: FSMContext):
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="change_chapter"))
     text = await chapter_texter(chapter)
     if chapter.photo:
-        media = InputMediaPhoto(media=chapter.photo, caption=text)
+        media = InputMediaPhoto(media=chapter.photo)
         await call.message.edit_media(media=media, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
     else:
         await call.message.edit_text(text=text, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
