@@ -1016,15 +1016,16 @@ async def change_chapter(call: CallbackQuery, state: FSMContext):
     text = change_chapter_text
 
     if is_media:
-        text += " "
+        try:
+            await call.message.delete()
+            await call.message.answer(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+        except Exception as e:
+            print(f"Error while deleting and sending new message: {e}")
+    else:
         try:
             await call.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
         except Exception as e:
             print(f"Error while editing text: {e}")
-    else:
-
-        await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
-    # await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 
 
 class ChangingChapterState(StatesGroup):
