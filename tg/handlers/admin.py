@@ -181,7 +181,7 @@ async def manage_users(call: CallbackQuery):
             builder.row(InlineKeyboardButton(text="🔍 Найти пользователя", callback_data="find_profile"))
             for user in users_page:
                 user_name = await name_without_escape(user)
-                builder.add(InlineKeyboardButton(text=f"{user_name}",callback_data=f"usershow_{user.user_id}"))
+                builder.add(InlineKeyboardButton(text=f"{user_name}", callback_data=f"usershow_{user.user_id}"))
             builder.adjust(1, 2)
             if page_number > 1:
                 builder.row(InlineKeyboardButton(text="◀️ Предыдущая страница",callback_data=f"prev_page_{page_number - 1}"))
