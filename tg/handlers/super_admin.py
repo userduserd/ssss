@@ -69,6 +69,7 @@ async def awaiting_usdt_course(msg: Message, state: FSMContext):
     except Exception as e:
         print(e)
 
+
 @router.message(WithdrawState.awaiting_txid)
 async def awaiting_txid(msg: Message, state: FSMContext, bot: Bot):
     try:

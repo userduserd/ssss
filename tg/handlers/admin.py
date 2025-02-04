@@ -125,7 +125,9 @@ async def back_to_admin_panel(call: CallbackQuery, state: FSMContext):
 async def show_products(call: CallbackQuery):
     text = await vitrina_text()
     builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="Товары", callback_data="manage_sell_products"))
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="back_to_admin_menu"))
+    builder.adjust(1)
     await call.message.edit_text(text, parse_mode="Markdown", reply_markup=builder.as_markup())
 
 
@@ -1189,6 +1191,76 @@ async def awaiting_price_gp(msg: Message, state: FSMContext):
         await state.clear()
     except Exception as e:
         await msg.answer("📛 _Что то пошло не так, введите цельное число_:", parse_mode="Markdown")
+
+
+@router.callback_query(F.data == "manage_sell_products")
+async def manage_products(call: CallbackQuery):
+    products = await sync_to_async(list)(Product.objects.all())
+    if products:
+        total_pages = (len(products) + PAGE_SIZE - 1) // PAGE_SIZE
+        page_number = 1
+
+        @router.callback_query(F.data.startswith("next_page_"))
+        async def next_page(call: CallbackQuery):
+            page_number = int(call.data.split("_")[2]) + 1
+            if page_number > total_pages:
+                page_number = total_pages
+            await send_products_page(call, page_number, total_pages)
+
+        @router.callback_query(F.data.startswith("prev_page_"))
+        async def prev_page(call: CallbackQuery):
+            page_number = int(call.data.split("_")[2]) - 1
+            if page_number < 1:
+                page_number = 1
+            await send_products_page(call, page_number, total_pages)
+
+        async def send_products_page(call: CallbackQuery, page_number: int, total_pages: int):
+            start_index = (page_number - 1) * PAGE_SIZE
+            end_index = min(start_index + PAGE_SIZE, len(products))
+            products_page = products[start_index:end_index]
+
+            builder = InlineKeyboardBuilder()
+            builder.row(InlineKeyboardButton(text="🔍 Найти продукт", callback_data="find_product"))
+            for product in products_page:
+                gram_info = f"{product.gram.gram}г - {product.gram.price}₸"
+                builder.add(InlineKeyboardButton(text=f"{product.rayon.rayon_name} - {gram_info}", callback_data=f"productshow_{product.id}"))
+            builder.adjust(1, 2)
+            if page_number > 1:
+                builder.row(InlineKeyboardButton(text="◀️ Предыдущая страница", callback_data=f"prev_page_{page_number - 1}"))
+            if page_number < total_pages:
+                builder.row(InlineKeyboardButton(text="Следующая страница ▶️", callback_data=f"next_page_{page_number + 1}"))
+            builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="show_products"))
+
+            await call.message.edit_text("Список продуктов:", reply_markup=builder.as_markup())
+
+        await send_products_page(call, page_number, total_pages)
+    else:
+        await call.message.answer("👀 _Нет зарегистрированных продуктов_", parse_mode="Markdown")
+
+
+@router.callback_query(F.data.startswith("productshow_"))
+async def product_details(call: CallbackQuery):
+    product_id = int(call.data.split("_")[1])
+    product = await sync_to_async(Product.objects.get)(id=product_id)
+    gram_info = f"{product.gram.gram}г - {product.gram.price}₸"
+    text = (f"📦 Продукт: {product.rayon.rayon_name}\n{gram_info}\n"
+            f"Адрес: {product.address}\n"
+            f"Дата добавления: {product.date_add.strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="🛠️ Редактировать", callback_data=f"edit_product_{product.id}"))
+    builder.add(InlineKeyboardButton(text="❌ Удалить", callback_data=f"delete_product_{product.id}"))
+    builder.adjust(2)
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="manage_products"))
+    await call.message.edit_text(text, reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data.startswith("delete_product_"))
+async def delete_product(call: CallbackQuery):
+    product_id = int(call.data.split("_")[2])
+    product = await sync_to_async(Product.objects.get)(id=product_id)
+    await sync_to_async(product.delete)()
+    await call.message.edit_text(f"Продукт {product.rayon.rayon_name} - {product.gram.gram}г удален.")
 
 # @router.callback_query(F.data == "change_customs")
 # async def change_chapter(call: CallbackQuery, state: FSMContext):
