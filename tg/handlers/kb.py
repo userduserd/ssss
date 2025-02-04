@@ -26,6 +26,7 @@ menu_button = KeyboardButton(text="ℹ️ Показать меню")
 menu_keyboard = ReplyKeyboardMarkup(resize_keyboard=True, keyboard=[[menu_button]])
 
 admin = [
+    [InlineKeyboardButton(text="💠 Витрина (в разработке)", callback_data="show_products")],
     [InlineKeyboardButton(text="🛍️ Продукты", callback_data="manage_products"),
      InlineKeyboardButton(text="⚙️ Настройки", callback_data="conf_shop")],
     [InlineKeyboardButton(text="📣 Рассылка", callback_data="send_msg_to_all"),

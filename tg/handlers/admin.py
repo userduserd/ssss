@@ -124,7 +124,9 @@ async def back_to_admin_panel(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "show_products")
 async def show_products(call: CallbackQuery):
     text = await vitrina_text()
-    await call.message.answer(text, parse_mode="Markdown")
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="back_to_admin_menu"))
+    await call.message.edit_text(text, parse_mode="Markdown")
 
 
 class BroadcastState(StatesGroup):
@@ -1087,7 +1089,7 @@ async def desc_change_ch(call: CallbackQuery, state: FSMContext):
     chapter = await sync_to_async(Chapter.objects.get)(id=data[3])
     await state.set_state(ChangingChapterState.awaiting_description)
     await state.update_data(chapter_id=chapter.id)
-    await call.message.answer("📃 _Отправьте описание раздела_:")
+    await call.message.answer("📃 _Отправьте описание раздела_:", parse_mode="Markdown")
 
 
 @router.message(ChangingChapterState.awaiting_description)
@@ -1101,7 +1103,7 @@ async def chapter_awaiting_desc(msg: Message, state: FSMContext):
     await changing_chapter_func(msg, chapter, state)
     if chapter.photo:
         await state.update_data(is_media=True)
-    
+
 
 
 @router.callback_query(F.data.startswith("gramprice_change_ch_"))
@@ -1111,7 +1113,7 @@ async def gramprice_change_ch(call: CallbackQuery):
     grams = await sync_to_async(GramPrice.objects.filter)(chapter=chapter)
     builder = InlineKeyboardBuilder()
     for gram in grams:
-        builder.add(InlineKeyboardButton(text=f"{chapter.chapter_name} {gram.gram} {gram.price}₸",
+        builder.add(InlineKeyboardButton(text=f"{gram.gram} {gram.price}₸",
                                          callback_data=f"changing_gramprice_{gram.id}"))
     builder.adjust(1)
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_chapter_{chapter.id}"))
@@ -1156,7 +1158,7 @@ async def changing_awaiting_gram(msg: Message, state: FSMContext):
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_gramprice_{gram.id}"))
         await msg.answer(f"Фасовка {escape_md(gram.chapter.chapter_name)} изменена на `{gram.gram}`г",
-                         reply_markup=builder.as_markup())
+                         reply_markup=builder.as_markup(), parse_mode="Markdown")
         await state.clear()
     except Exception as e:
         await msg.answer("📛 _Что то пошло не так, введите цельное или дробное число_:", parse_mode="Markdown")
