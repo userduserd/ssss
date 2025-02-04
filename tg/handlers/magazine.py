@@ -71,7 +71,7 @@ async def choose_gram(callback: CallbackQuery, bot: Bot):
     geo_with_products = await sync_to_async(Rayon.objects.filter)(product__isnull=False,
                                                                   product__bought_by__isnull=True,
                                                                   product__reserved=False,
-                                                                  city=city)
+                                                                  city=city, gram=gram)
     geo_with_products = geo_with_products.distinct()
     builder = InlineKeyboardBuilder()
     for geo in geo_with_products:
