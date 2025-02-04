@@ -1014,11 +1014,10 @@ async def change_chapter(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     is_media = data.get("is_media", False)
 
-    # Проверяем, был ли установлен флаг для медиа
+
     if is_media:
-        # Если это медиа сообщение, редактируем текст, чтобы избежать ошибки
-        await call.message.edit_media(media=call.message.media, caption=change_chapter_text,
-                                      reply_markup=builder.as_markup(), parse_mode="Markdown")
+        media = InputMediaPhoto(media=call.message.photo[-1].file_id, caption=change_chapter_text)  # Получаем фото
+        await call.message.edit_media(media=media, reply_markup=builder.as_markup(), parse_mode="Markdown")
     else:
         # Если это текстовое сообщение, редактируем текст
         await call.message.edit_text(change_chapter_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
@@ -1043,7 +1042,7 @@ async def changing_chapter(call: CallbackQuery, state: FSMContext):
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="change_chapter"))
     text = await chapter_texter(chapter)
     if chapter.photo:
-        media = InputMediaPhoto(media=chapter.photo)
+        media = InputMediaPhoto(media=chapter.photo, caption=text)
         await call.message.edit_media(media=media, reply_markup=builder.as_markup(), parse_mode="MarkdownV2")
         await state.update_data(is_media=True)
     else:
