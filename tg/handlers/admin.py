@@ -1014,7 +1014,6 @@ async def change_chapter(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     is_media = data.get("is_media", False)
     text = change_chapter_text
-
     if is_media:
         try:
             await call.message.delete()
@@ -1074,7 +1073,8 @@ async def chapter_awaiting_photo(msg: Message, state: FSMContext):
         chapter.photo = file_id
         chapter.save()
         await state.clear()
-        await changing_chapter_func(msg, chapter)
+        await changing_chapter_func(msg, chapter, state)
+        await state.update_data(is_media=True)
     else:
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(text="‹ Назад", callback_data=f"changing_chapter_{chapter.id}"))
@@ -1097,8 +1097,11 @@ async def chapter_awaiting_desc(msg: Message, state: FSMContext):
     chapter = await sync_to_async(Chapter.objects.get)(id=chapter_id)
     chapter.description = msg.text
     chapter.save()
-    await changing_chapter_func(msg, chapter)
     await state.clear()
+    await changing_chapter_func(msg, chapter, state)
+    if chapter.photo:
+        await state.update_data(is_media=True)
+    
 
 
 @router.callback_query(F.data.startswith("gramprice_change_ch_"))

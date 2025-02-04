@@ -451,7 +451,7 @@ async def chapter_texter(chapter):
     return text
 
 
-async def changing_chapter_func(msg, chapter):
+async def changing_chapter_func(msg, chapter, state):
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="🖼 Фото", callback_data=f"photo_change_ch_{chapter.id}"))
     builder.add(InlineKeyboardButton(text="📃 Описание", callback_data=f"desc_change_ch_{chapter.id}"))
