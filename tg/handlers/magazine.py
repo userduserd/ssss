@@ -22,7 +22,7 @@ async def magazine(callback: CallbackQuery, bot: Bot):
     builder = InlineKeyboardBuilder()
     if cities:
         for i in cities:
-            builder.add(InlineKeyboardButton(text=f"{i.city_name}", callback_data=f"city_{i.id}"))
+            builder.add(InlineKeyboardButton(text=f"🏙️ {i.city_name} 🏙️", callback_data=f"city_{i.id}"))
     builder.adjust(2)
     builder.row(InlineKeyboardButton(text="‹ Назад", callback_data="back_to_menu"))
 
@@ -75,7 +75,7 @@ async def choose_gram(callback: CallbackQuery, bot: Bot):
     geo_with_products = geo_with_products.distinct()
     builder = InlineKeyboardBuilder()
     for geo in geo_with_products:
-        builder.add(InlineKeyboardButton(text=f"{geo.rayon_name}", callback_data=f"trybuy_{geo.id}_{gram.id}"))
+        builder.add(InlineKeyboardButton(text=f"📍 {geo.rayon_name} 🌳", callback_data=f"trybuy_{geo.id}_{gram.id}"))
     builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"city_{city.id}"))
     builder.adjust(1)
     text = payment_text.format(geo=city.city_name, product=gram.chapter.chapter_name)

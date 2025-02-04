@@ -210,6 +210,13 @@ async def namer(user):
     full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
     return escape_md(full_name)
 
+async def name_without_escape(user):
+    if user.username:
+        return f"@{user.username}"
+
+    full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+    return escape_md(full_name)
+
 
 async def profile_shower(user, edit_msg_id, bot, chat_id):
     await asyncio.sleep(1)

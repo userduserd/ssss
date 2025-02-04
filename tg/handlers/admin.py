@@ -18,7 +18,7 @@ from .text import broadcast_text, broadcasting_text, find_user_text, profile_tex
 from .user_history import show_products_page
 from .utils import vitrina_text, rassilka, terminate_process, get_total_purchases, get_total_invoices, \
     get_total_promo, get_total_promo_amount, namer, profile_shower, profile_edited_shower, get_statistics, escape_md, \
-    show_desc_or_photo, escape_markdown_v2, chapter_texter, changing_chapter_func, parse_number
+    show_desc_or_photo, escape_markdown_v2, chapter_texter, changing_chapter_func, parse_number, name_without_escape
 from tg.models import TelegramUser, City, Rayon, Product, GramPrice, Invoice, Req, Chapter
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from asgiref.sync import sync_to_async
@@ -180,7 +180,7 @@ async def manage_users(call: CallbackQuery):
             builder = InlineKeyboardBuilder()
             builder.row(InlineKeyboardButton(text="🔍 Найти пользователя", callback_data="find_profile"))
             for user in users_page:
-                user_name = await namer(user)
+                user_name = await name_without_escape(user)
                 builder.add(InlineKeyboardButton(text=f"{user_name}",callback_data=f"usershow_{user.user_id}"))
             builder.adjust(1, 2)
             if page_number > 1:
