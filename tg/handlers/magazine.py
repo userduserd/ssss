@@ -104,7 +104,7 @@ async def choose_gram(callback: CallbackQuery, bot: Bot):
     builder = InlineKeyboardBuilder()
     for geo in geo_with_products:
         builder.add(InlineKeyboardButton(text=f"{geo.rayon_name}", callback_data=f"trybuy_{geo.id}_{gram.id}"))
-    builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"gram_{city.id}_{gram.id}"))
+    builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"city_{city.id}"))
     builder.adjust(1)
     text = payment_text.format(geo="Выберите район", product=gram.chapter.chapter_name)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
@@ -140,7 +140,7 @@ async def kzt_payment(callback: CallbackQuery, bot: Bot):
     builder.add(InlineKeyboardButton(text="Подтвердить", callback_data=f"confirm_{geo.id}_{gram.id}"))
     if gram.chapter.photo or gram.chapter.description:
         builder.add(InlineKeyboardButton(text="Описание", callback_data=f"show_description_{gram.chapter.id}"))
-    builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"gram_{geo.id}_{gram.id}"))
+    builder.add(InlineKeyboardButton(text="‹ Назад", callback_data=f"gram_{geo.city.id}_{gram.id}"))
     builder.adjust(1)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
 
